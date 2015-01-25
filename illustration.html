@@ -1,15 +1,15 @@
 <!DOCTYPE html>
 <html>
-<head><title>Telegraph - Submit Illustration</title>
-<script src="http://code.jquery.com/jquery-2.1.3.min.js"></script></head>
+<head><title>Submit Illustration</title>
+<script src="http://code.jquery.com/jquery-2.1.3.min.js"></script>
+<link rel="stylesheet" type="text/css" href="telegraph.css" />
+</head>
 <body>
-<form action="illustration/" method="post">
-<label>Name: <input name="username" maxlength="80" /></label>
+<label>Name: <input id="username" maxlength="80" /></label>
 <br/>
-<input type=hidden name="illustration" />
-<canvas id="canvas" width="400px" height="400px" style="border:1px solid black" />
-<input type="submit" />
-</form>
+<canvas id="canvas" width="400px" height="400px"></canvas>
+<br />
+<input type="button" id="submit" value="Submit" />
 <script>
 var c2d = document.getElementById("canvas").getContext("2d");
 var paint = false;
@@ -34,6 +34,35 @@ $("#canvas").mousemove(function(e) {
 });
 $("#canvas").mouseup(function(e) { paint = false; });
 $("#canvas").mouseleave(function(e) { paint = false; });
+$("#submit").click(function(e) {
+   $.ajax({type: "POST", url: "illustration.php",
+      data:{'username':$("#username")[0].value,format:"PNG",
+         'illustration':$("#canvas")[0].toDataURL('image/png').substring(22),
+         'predecessor':predecessor}})
+   .done(function(result) {
+      $("#submit").prop("disabled", true);
+      $("<p/>").append(
+         $("<a/>").attr("href", "phrase.html?predecessor=" + result.id).text("Copy this link to the next player")
+      ).insertAfter("#canvas");
+   })
+   .fail(function(jqXHR, textStatus) {
+      $("<p/>").text(textStatus).insertAfter("#canvas");
+   });   
+});
+var predecessor = null;
+$(function() {
+   var predecessorEx = new RegExp("[\\?&]predecessor=([^&#]*)").exec(location.search);
+   if (predecessorEx != null) {
+      predecessor = predecessorEx[1];
+      $.ajax({type: "GET", url: "phrase/" + predecessor})
+      .done(function(result) {
+         $('body').prepend($('<p/>').text(result.phrase));
+      })
+      .fail(function(jqXHR, textStatus) {
+         $('body').prepend($('<p/>').text("Failed to load phrase: " + textStatus));
+      });
+   }
+});
 </script>
 </body>
 </html>

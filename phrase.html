@@ -1,11 +1,39 @@
 <!DOCTYPE html>
 <html>
-<head><title>Telegraph - Submit Phrase</title></head>
+<head><title>Submit Phrase</title>
+<script src="http://code.jquery.com/jquery-2.1.3.min.js"></script>
+<link rel="stylesheet" type="text/css" href="telegraph.css" />
+</head>
 <body>
-<form action="phrase/" method="post">
-<label>Name: <input name="username" maxlength="80" /></label>
-<label>Phrase: <input name="phrase" maxlength="140" /></label>
-<input type="submit" />
-</form>
+<label>Name: <input id="username" maxlength="80" /></label>
+<br />
+<label>Phrase: <input id="phrase" maxlength="140" /></label>
+<br />
+<input type="button" id="submit" value="Submit" />
+<script>
+var predecessor = null;
+$(function() {
+   var predecessorEx = new RegExp("[\\?&]predecessor=([^&#]*)").exec(location.search);
+   if (predecessorEx != null) {
+      predecessor = predecessorEx[1];
+      $('body').prepend('<img src="illustration/' + predecessor + '/illustration" /><br />');
+   }
+});
+$("#submit").click(function(e) {
+   $.ajax({type: "POST", url: "phrase.php",
+      data:{'username':$("#username")[0].value,
+         'phrase':$("#phrase")[0].value,
+         'predecessor':predecessor}})
+   .done(function(result) {
+      $("#submit").prop("disabled", true);
+      $("<p/>").append(
+         $("<a/>").attr("href", "illustration.html?predecessor=" + result.id).text("Copy this link to the next player")
+      ).insertBefore("#submit");
+   })
+   .fail(function(jqXHR, textStatus) {
+      $("<p/>").text(textStatus).insertAfter("#canvas");
+   });   
+});
+</script>
 </body>
 </html>
