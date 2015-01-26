@@ -4,12 +4,12 @@
 <script src="http://code.jquery.com/jquery-2.1.3.min.js"></script>
 <link rel="stylesheet" type="text/css" href="telegraph.css" />
 </head>
-<body>
+<body class="unselectable" unselectable="on">
 <label>Name: <input id="username" maxlength="80" /></label>
 <br/>
-<canvas id="canvas" width="400px" height="400px"></canvas>
+<canvas id="canvas" width="400px" height="400px" class="unselectable" unselectable="on"></canvas>
 <br />
-<input type="button" id="submit" value="Submit" />
+<input type="button" id="clear" value="Clear" /> <input type="button" id="submit" value="Submit" />
 <script>
 var c2d = document.getElementById("canvas").getContext("2d");
 var paint = false;
@@ -17,6 +17,14 @@ var mouseX, mouseY;
 $("#canvas").mousedown(function(e) {
    mouseX = e.pageX - this.offsetLeft;
    mouseY = e.pageY - this.offsetTop;
+   paint = true;
+});
+$("#canvas").bind('touchstart', function(e) {
+   e.preventDefault();
+   e = e.originalEvent;   
+   var touch = e.touches.item(0);
+   mouseX = touch.pageX - this.offsetLeft;
+   mouseY = touch.pageY - this.offsetTop;
    paint = true;
 });
 $("#canvas").mousemove(function(e) {
@@ -32,7 +40,23 @@ $("#canvas").mousemove(function(e) {
       mouseY = newY;
    }
 });
-$("#canvas").mouseup(function(e) { paint = false; });
+$("#canvas").bind('touchmove', function(e) {
+   if (paint) {
+      e.preventDefault();
+      e = e.originalEvent;
+      var touch = e.touches.item(0);
+      newX = touch.pageX - this.offsetLeft;
+      newY = touch.pageY - this.offsetTop;      
+      c2d.beginPath();
+      c2d.moveTo(mouseX, mouseY);
+      c2d.lineTo(newX, newY);
+      c2d.closePath();
+      c2d.stroke();
+      mouseX = newX;
+      mouseY = newY;
+   }
+});
+$("#canvas").bind('mouseup touchend', function(e) { paint = false; });
 $("#canvas").mouseleave(function(e) { paint = false; });
 $("#submit").click(function(e) {
    $.ajax({type: "POST", url: "illustration.php",
@@ -48,6 +72,9 @@ $("#submit").click(function(e) {
    .fail(function(jqXHR, textStatus) {
       $("<p/>").text(textStatus).insertAfter("#canvas");
    });   
+});
+$("#clear").click(function(e) {
+   c2d.clearRect(0, 0, 400, 400);
 });
 var predecessor = null;
 $(function() {
