@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<title>Sequence</title>
+<script src="http://code.jquery.com/jquery-2.1.3.min.js"></script>
+<link rel="stylesheet" type="text/css" href="drawperator.css" />
+</head>
+<body>
+<script>
+function getIllustration(illustration) {
+   $('body').prepend('<img src="illustration/' + illustration + '/illustration" /><br />');
+   $.ajax({type: "GET", url: "illustration/" + illustration})
+   .done(function(result) {
+      if (result.predecessor) {
+         getPhrase(result.predecessor);
+      }
+   })
+   .fail(function(jqXHR, textStatus) {
+      $('body').prepend($('<p/>').text("Failed to load illustration " + illustration + ": " + textStatus));
+   });
+}
+
+function getPhrase(phrase) {
+   $.ajax({type: "GET", url: "phrase/" + phrase})
+   .done(function(result) {
+      $('body').prepend($('<p/>').text(result.phrase));
+      if (result.predecessor) {
+         getIllustration(result.predecessor);
+      }
+   })
+   .fail(function(jqXHR, textStatus) {
+      $('body').prepend($('<p/>').text("Failed to load phrase " + phrase + ": " + textStatus));
+   });
+}
+
+$(function() {
+   var illustrationEx = new RegExp("[\\?&]illustration=([^&#]*)").exec(location.search);
+   if (illustrationEx != null) {
+      getIllustration(illustrationEx[1]);   
+   }
+   var phraseEx = new RegExp("[\\?&]phrase=([^&#]*)").exec(location.search);
+   if (phraseEx != null) {
+      getPhrase(phraseEx[1]);   
+   }
+});
+</script>
+</body>
+</html>

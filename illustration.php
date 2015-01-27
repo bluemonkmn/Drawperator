@@ -1,11 +1,13 @@
 <?php
 include_once "connect.php";
 
-$conn = new mysqli($servername, $dbuser, $password, $dbname);
-// Check connection
-if ($conn->connect_error) {
-   die("Connection failed: " . $conn->connect_error);
+try {
+   $conn = new PDO("mysql:host=$servername;dbname=$dbname", $dbuser, $password);
+} catch (PDOException $e) {
+   die("Connection failed: " . $e->getMessage());
 } 
+
+$conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
 switch($_SERVER['REQUEST_METHOD']) {
 case 'GET':
@@ -21,7 +23,7 @@ case 'GET':
       if (isset($id))
          $cmd = 'single';
    }
-   
+
    if (isset($id))
       $sql .= " WHERE tg_illustration.id=?";      
 
@@ -52,6 +54,9 @@ case 'GET':
       $results = array();
       while ($result = $rowset->fetch_array(MYSQL_ASSOC)) {
          $result['clientaddress'] = $result['clientaddress'] ? inet_ntop($result['clientaddress']) : '';
+         // javascript can't handle bigint
+         $result['id'] = (string)$result['id'];
+         $result['predecessor'] = (string)$result['predecessor'];
          array_push($results, $result);
       }
    }
@@ -96,6 +101,9 @@ case 'POST':
       die($conn->error);
    $stmt->close();
    header('Content-Type: application/json');
+   // javascript can't handle bigint
+   $result['id'] = (string)$result['id'];
+   $result['predecessor'] = (string)$result['predecessor'];
    echo json_encode($result);
    break;
 }
