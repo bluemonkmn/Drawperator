@@ -70,7 +70,7 @@ $("#submit").click(function(e) {
       ).insertAfter("#canvas");
    })
    .fail(function(jqXHR, textStatus) {
-      $("<p/>").text(textStatus).insertAfter("#canvas");
+      $("<p/>").text(jqXHR.responseText).insertAfter("#canvas");
    });   
 });
 $("#clear").click(function(e) {

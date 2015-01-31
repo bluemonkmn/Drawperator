@@ -9,6 +9,7 @@ try {
 
 $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
+try {
 switch($_SERVER['REQUEST_METHOD']) {
 case 'GET':
    $cmd = 'list';
@@ -19,7 +20,8 @@ case 'GET':
    if ($cmd == 'illustration') {
       $sql = 'SELECT format,illustration FROM tg_illustration';
    } else {
-      $sql = 'SELECT tg_illustration.id,format,fk_phrase predecessor,clientaddress,name user FROM tg_illustration JOIN tg_user ON fk_user = tg_user.id';
+      $sql = 'SELECT tg_illustration.id,format,fk_phrase predecessor,clientaddress,name user, timestamp
+         FROM tg_illustration JOIN tg_user ON fk_user = tg_user.id';
       if (isset($id))
          $cmd = 'single';
    }
@@ -27,15 +29,14 @@ case 'GET':
    if (isset($id))
       $sql .= " WHERE tg_illustration.id=?";      
 
-   if (!($stmt = $conn->prepare($sql)))
-      die ($conn->error);
+   $stmt = $conn->prepare($sql);
+   
    if (isset($id))
-      $stmt->bind_param('i', $id);
+      $stmt->bindParam(1, $id);
    $stmt->execute();
    if ($cmd == 'illustration') {
-      $stmt->bind_result($format,$illustration);
-      if ($stmt->fetch()) {
-         switch($format) {
+      if ($row = $stmt->fetch()) {
+         switch($row['format']) {
             case 'GIF':
                header('Content-Type: image/gif');
                break;
@@ -46,13 +47,12 @@ case 'GET':
                header('Content-Type: image/png');
                break;
          }
-         print $illustration;
+         print $row['illustration'];
       }
    } else {
       header('Content-Type: application/json');
-      $rowset = $stmt->get_result();
       $results = array();
-      while ($result = $rowset->fetch_array(MYSQL_ASSOC)) {
+      while ($result = $stmt->fetch(PDO::FETCH_ASSOC)) {
          $result['clientaddress'] = $result['clientaddress'] ? inet_ntop($result['clientaddress']) : '';
          // javascript can't handle bigint
          $result['id'] = (string)$result['id'];
@@ -60,7 +60,6 @@ case 'GET':
          array_push($results, $result);
       }
    }
-   $stmt->close();
    if ($cmd == 'list')
       echo json_encode($results);
    elseif ($cmd == 'single')
@@ -69,43 +68,50 @@ case 'GET':
 case 'POST':
    if (empty($username))
       die("User name required.");
-   if (!($stmt = $conn->prepare('SELECT id FROM tg_user WHERE name=?')))
-      die ($conn->error);
-   $stmt->bind_param('s', $username);
-   $stmt->execute();
-   $stmt->bind_result($uid);   
-   if (!$stmt->fetch()) {
-      if (!($stmt2 = $conn->prepare('INSERT INTO tg_user(name) VALUES(?)')))
-         die ($conn->error);      
-      $stmt2->bind_param('s', $username);
-      $stmt2->execute();
-      $uid = $conn->insert_id;
-      $stmt2->close();
+   $stmt = $conn->prepare('SELECT id FROM tg_user WHERE name=?');
+   $stmt->execute(array($username));
+   if (!($uid=$stmt->fetchColumn())) {
+      $stmt2 = $conn->prepare('INSERT INTO tg_user(name) VALUES(?)');
+      $stmt2->execute(array($username));
+      $uid = $conn->lastInsertId();
    }
-   $stmt->close();
    if (empty($uid))
       die("Failed to get user id.");
    
    if (!($illustration = base64_decode($_REQUEST['illustration'])))
       die("Failed to decode picture data");
    
-   if (!($stmt = $conn->prepare('INSERT INTO tg_illustration(id,fk_phrase,format,illustration,clientaddress,fk_user) VALUES(?,?,?,BINARY ?,BINARY ?,?)')))
-      die ($conn->error);
-   $result = array('id' => mt_rand() . mt_rand(0,999999999),
-      'format' => $_REQUEST['format'],
-      'predecessor' => $_REQUEST['predecessor'],
-      'clientaddress' => $_SERVER['REMOTE_ADDR']?:($_SERVER['HTTP_X_FORWARDED_FOR']?:$_SERVER['HTTP_CLIENT_IP']),
-      'user' => $username);
-   $stmt->bind_param('iisssi', $result['id'], $result['predecessor'], $result['format'], $illustration, inet_pton($result['clientaddress']), $uid);
-   if (!$stmt->execute())
-      die($conn->error);
-   $stmt->close();
-   header('Content-Type: application/json');
-   // javascript can't handle bigint
-   $result['id'] = (string)$result['id'];
-   $result['predecessor'] = (string)$result['predecessor'];
-   echo json_encode($result);
+   $stmt = $conn->prepare('INSERT INTO tg_illustration(id,fk_phrase,format,illustration,clientaddress,fk_user)
+      VALUES(:id,:predecessor,:format,BINARY :illustration,BINARY :clientaddress,:user)');
+   $id = mt_rand() . mt_rand(0,999999999);
+   $stmt->execute(array(':id' => $id,
+      ':predecessor' => $_REQUEST['predecessor'],
+      ':format' => $_REQUEST['format'],
+      ':illustration' => $illustration,
+      ':clientaddress' => inet_pton($_SERVER['REMOTE_ADDR']?:($_SERVER['HTTP_X_FORWARDED_FOR']?:$_SERVER['HTTP_CLIENT_IP'])),
+      ':user' => $uid));
+   $stmt = $conn->prepare('SELECT i.id,i.fk_phrase,i.format,i.clientaddress,u.name,i.timestamp
+      FROM tg_illustration i JOIN tg_user u ON i.fk_user = u.id
+      WHERE i.id=?');
+   $stmt->execute(array($id));
+   if ($result = $stmt->fetch(PDO::FETCH_ASSOC)) {
+      $result['clientaddress'] = $result['clientaddress'] ? inet_ntop($result['clientaddress']) : '';
+      // javascript can't handle bigint
+      $result['id'] = (string)$result['id'];
+      $result['predecessor'] = (string)$result['predecessor'];
+      header('Content-Type: application/json');
+      echo json_encode($result);
+   } else {
+      http_response_code(500);
+      header('Content-Type: text/plain');
+      echo "Failed to retrieve inserted row $id user $uid";
+   }
    break;
 }
-$conn->close();
+} catch (PDOException $e) {
+   http_response_code(500);
+   header('Content-Type: text/plain');
+   echo $e->getMessage();
+}
+$conn=null;
 ?>

@@ -1,4 +1,5 @@
 canvas {border:1px solid black}
+table,td {border:1px solid black}
 .unselectable {
       user-select:none;
       -moz-user-select:-moz-none;

@@ -5,12 +5,22 @@
 <link rel="stylesheet" type="text/css" href="drawperator.css" />
 </head>
 <body>
+<table>
+<thead><th>Submitter</th><th>Time</th><th>Submission</th></thead>
+<tbody id="content"></tbody>
+</table>
 <script>
 function getIllustration(illustration) {
-   $('body').prepend('<img src="illustration/' + illustration + '/illustration" /><br />');
    $.ajax({type: "GET", url: "illustration/" + illustration})
    .done(function(result) {
-      if (result.predecessor) {
+      var row = $('<tr />');
+      row.append(
+         $('<td />').text(result.user),
+         $('<td />').text(result.timestamp),
+         $('<td><img src="illustration/' + illustration + '/illustration" /></td>')
+      );
+      $('#content').prepend(row);
+      if (result.predecessor > 0) {
          getPhrase(result.predecessor);
       }
    })
@@ -22,8 +32,14 @@ function getIllustration(illustration) {
 function getPhrase(phrase) {
    $.ajax({type: "GET", url: "phrase/" + phrase})
    .done(function(result) {
-      $('body').prepend($('<p/>').text(result.phrase));
-      if (result.predecessor) {
+      var row = $('<tr />');
+      row.append(
+         $('<td />').text(result.user),
+         $('<td />').text(result.timestamp),
+         $('<td />').text(result.phrase)
+      );
+      $('#content').prepend(row);
+      if (result.predecessor > 0) {
          getIllustration(result.predecessor);
       }
    })
