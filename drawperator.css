@@ -7,3 +7,5 @@ table,td {border:1px solid black}
       -webkit-user-select:none;
       -o-user-select:none;
 }
+#phraseInputArea {display:none;}
+#illustrationInputArea {display:none;}

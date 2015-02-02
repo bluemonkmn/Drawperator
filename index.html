@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Drawperator</title>
+<link rel="stylesheet" type="text/css" href="drawperator.css" />
+<script src="https://apis.google.com/js/client:platform.js" async defer></script>
+<script src="http://code.jquery.com/jquery-2.1.3.min.js"></script>
+<script>
+function signinCallback(authResult) {
+   if (authResult['status']['signed_in']) {
+      // Update the app to reflect a signed in user
+      // Hide the sign-in button now that the user is authorized, for example:
+      $('#signinButton').hide();
+      $('#signoutButton').show();
+      document.cookie='id_token=' + authResult['id_token'] + ';max-age:3600';
+      var request = gapi.client.request(
+         {"path":"https://www.googleapis.com/plus/v1/people/me",
+         "method":"GET"});
+      request.execute(function(profile) {
+         if (profile.error) {
+            $('#status').text(profile.error);
+         } else {
+            $("#username").value = profile.displayName;
+            $("#username").hide();
+            $("#displayName").text(profile.displayName);
+            $('#status').text("Welcome: " + profile.displayName);
+            $('#profile').attr("src", profile.image.url);
+            loadContent();
+         }
+      });
+   } else {
+      // Update the app to reflect a signed out user
+      // Possible error values:
+      //   "user_signed_out" - User is signed-out
+      //   "access_denied" - User denied access to your app
+      //   "immediate_failed" - Could not automatically log in the user    
+      $('#status').text(authResult['error']);
+      document.cookie='id_token=;max-age:0;expires=Thu, 01 Jan 1970 00:00:00 UTC';
+      $('#signinButton').show();      
+      $('#signoutButton').hide();
+      $("#username").show();
+      $("#displayName").empty();
+      console.log('Sign-in state: ' + authResult['error']);
+   }
+}
+var mode;
+var predecessor;
+var c2d;
+var paint = false;
+var mouseX, mouseY;
+function loadContent() {
+   if (predecessor != null) {
+      if (mode == "illustration") {
+         $.ajax({type: "GET", url: "phrase/" + predecessor})
+         .done(function(result) {
+            var escapedPhrase = $('<span></span>').text(result.phrase).html();
+            var escapedUser = $('<span></span>').text(result.user).html();
+            $('#predecessorContent').html('<p>Created by ' + escapedUser + ' on ' + result.timestamp
+               + '<br /><label>Phrase: <span>' + escapedPhrase + '</span></label></p>');
+         })
+         .fail(function(jqXHR, textStatus) {
+            $('#predecessorContent').html($('<p/>').text("Failed to load phrase: " + jqXHR.responseText));
+         });
+      } else {
+         $.ajax({type: "GET", url: "illustration/" + predecessor})
+         .done(function(result) {
+            $('#predecessorContent').html('<img src="illustration/' + predecessor + '/illustration" />');
+            $infoPara = $('<p></p>').text(result['user']);
+            $infoPara.prepend("Drawn by ");
+            $infoPara.append(" on " + result['timestamp']);
+            $('#predecessorContent').prepend($infoPara);
+         })
+         .fail(function(jqXHR, textStatus) {
+            $('#predecessorContent').html($('<p/>').text("Failed to load illustration: " + jqXHR.responseText));
+         });
+      }
+   }
+}
+$(function() {
+   mode = new RegExp("[\\?&](phrase|illustration)(?:$|&|#)").exec(location.search);
+   if (mode == null)
+      mode = "phrase";
+   else
+      mode = mode[1];
+      
+   if (mode == "phrase") {
+      $('#phraseInputArea').show();
+      $("#submitPhrase").click(function(e) {
+         $.ajax({type: "POST", url: "phrase.php",
+            data:{'username':$("#username")[0].value,
+               'phrase':$("#phrase")[0].value,
+               'predecessor':predecessor}})
+         .done(function(result) {
+            $("#submit").prop("disabled", true);
+            $("<p/>").append(
+               $("<a/>").attr("href", "illustration.html?predecessor=" + result.id).text("Copy this link to the next player")
+            ).insertBefore("#submit");
+         })
+         .fail(function(jqXHR, textStatus) {
+            $("<p/>").text(textStatus).insertAfter("#canvas");
+         });   
+      });
+   } else {
+      $('#illustrationInputArea').show();
+      c2d = document.getElementById("canvas").getContext("2d");
+      $("#canvas").mousedown(function(e) {
+         mouseX = e.pageX - this.offsetLeft;
+         mouseY = e.pageY - this.offsetTop;
+         paint = true;
+      });
+      $("#canvas").bind('touchstart', function(e) {
+         e.preventDefault();
+         e = e.originalEvent;   
+         var touch = e.touches.item(0);
+         mouseX = touch.pageX - this.offsetLeft;
+         mouseY = touch.pageY - this.offsetTop;
+         paint = true;
+      });
+      $("#canvas").mousemove(function(e) {
+         if (paint) {
+            var newX = e.pageX - this.offsetLeft;
+            var newY = e.pageY - this.offsetTop;
+            c2d.beginPath();
+            c2d.moveTo(mouseX, mouseY);
+            c2d.lineTo(newX, newY);
+            c2d.closePath();
+            c2d.stroke();
+            mouseX = newX;
+            mouseY = newY;
+         }
+      });
+      $("#canvas").bind('touchmove', function(e) {
+         if (paint) {
+            e.preventDefault();
+            e = e.originalEvent;
+            var touch = e.touches.item(0);
+            newX = touch.pageX - this.offsetLeft;
+            newY = touch.pageY - this.offsetTop;      
+            c2d.beginPath();
+            c2d.moveTo(mouseX, mouseY);
+            c2d.lineTo(newX, newY);
+            c2d.closePath();
+            c2d.stroke();
+            mouseX = newX;
+            mouseY = newY;
+         }
+      });
+      $("#canvas").bind('mouseup touchend', function(e) { paint = false; });
+      $("#canvas").mouseleave(function(e) { paint = false; });
+      $("#submitIllustration").click(function(e) {
+         $.ajax({type: "POST", url: "illustration.php",
+            data:{'username':$("#username")[0].value,format:"PNG",
+               'illustration':$("#canvas")[0].toDataURL('image/png').substring(22),
+               'predecessor':predecessor}})
+         .done(function(result) {
+            $("#submit").prop("disabled", true);
+            $("<p/>").append(
+               $("<a/>").attr("href", "phrase.html?predecessor=" + result.id).text("Copy this link to the next player")
+            ).insertAfter("#canvas");
+         })
+         .fail(function(jqXHR, textStatus) {
+            $("<p/>").text(jqXHR.responseText).insertAfter("#canvas");
+         });   
+      });
+      $("#clear").click(function(e) {
+         c2d.clearRect(0, 0, 400, 400);
+      });      
+   }
+   
+   predecessor = new RegExp("[\\?&]predecessor=([^&#]*)").exec(location.search);
+   if (predecessor != null)
+      predecessor = predecessor[1];
+
+   loadContent();
+   
+   $('#signoutButton').click(function() {
+      gapi.auth.signOut();
+   });
+   
+   $('#loadPeople').click(function() {
+      var request = gapi.client.request(
+         {'path':'https://www.googleapis.com/plus/v1/people/me/people/visible?orderBy=best&maxResults=10',
+         'method':'GET'});
+      request.execute(function(people) {
+          $('#peopleList').empty();
+         for(var i = 0; i < people.items.length; i++) {
+            $('#peopleList').append(
+               $('<img src="' + people.items[i].image.url + '" /><a href="'
+                  + people.items[i].url + '">' + people.items[i].displayName + '</a><br/>')
+            );
+         }
+      });
+   });
+});
+</script>
+</head>
+<body class="unselectable" unselectable="on">
+<h1>Drawperator</h1>
+<span id="signinButton">
+   <span
+      class="g-signin"
+      data-callback="signinCallback"
+      data-clientid="287420793573-8tg9b6aoq8c89ooctbiqmu89uncddfa0.apps.googleusercontent.com"
+      data-cookiepolicy="single_host_origin"
+      data-requestvisibleactions="http://schema.org/CreateAction"
+      data-scope="https://www.googleapis.com/auth/plus.login">
+   </span>
+</span>
+<input id="signoutButton" type="button" value="Sign out" />
+<input id="loadPeople" type="button" value="Load people" />
+<p><img id="profile" /><br />
+Name: <input id="username" type="text" maxLength="80" /><span id="displayName"></span><br />
+<div id="status"></div>
+<div id="predecessorContent"></div>
+<div id="illustrationInputArea">
+<canvas id="canvas" width="400px" height="400px" class="unselectable" unselectable="on"></canvas>
+<br />
+<input type="button" id="clear" value="Clear" /> <input type="button" id="submitIllustration" value="Submit" />
+</div>
+<div id="phraseInputArea">
+<label>Phrase: <input id="phrase" maxlength="140" /></label>
+<br />
+<input type="button" id="submitPhrase" value="Submit" />
+</div>
+<div id="peopleList"></div>
+</body>
+</html>

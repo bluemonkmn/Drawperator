@@ -1,13 +1,6 @@
 <?php
 include_once "connect.php";
-
-try {
-   $conn = new PDO("mysql:host=$servername;dbname=$dbname", $dbuser, $password);
-} catch (PDOException $e) {
-   die("Connection failed: " . $e->getMessage());
-} 
-
-$conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+include_once "checkuser.php";
 
 try {
 switch($_SERVER['REQUEST_METHOD']) {
@@ -66,17 +59,7 @@ case 'GET':
       echo json_encode($results[0]);
    break;
 case 'POST':
-   if (empty($username))
-      die("User name required.");
-   $stmt = $conn->prepare('SELECT id FROM tg_user WHERE name=?');
-   $stmt->execute(array($username));
-   if (!($uid=$stmt->fetchColumn())) {
-      $stmt2 = $conn->prepare('INSERT INTO tg_user(name) VALUES(?)');
-      $stmt2->execute(array($username));
-      $uid = $conn->lastInsertId();
-   }
-   if (empty($uid))
-      die("Failed to get user id.");
+   CheckUser();
    
    if (!($illustration = base64_decode($_REQUEST['illustration'])))
       die("Failed to decode picture data");
