@@ -20,7 +20,7 @@ function signinCallback(authResult) {
          if (profile.error) {
             $('#status').text(profile.error);
          } else {
-            $("#username").value = profile.displayName;
+            $("#username").val(profile.displayName);
             $("#username").hide();
             $("#displayName").text(profile.displayName);
             $('#status').text("Welcome: " + profile.displayName);
@@ -87,14 +87,14 @@ $(function() {
       $('#phraseInputArea').show();
       $("#submitPhrase").click(function(e) {
          $.ajax({type: "POST", url: "phrase.php",
-            data:{'username':$("#username")[0].value,
-               'phrase':$("#phrase")[0].value,
+            data:{'username':$("#username").val(),
+               'phrase':$("#phrase").val(),
                'predecessor':predecessor}})
          .done(function(result) {
-            $("#submit").prop("disabled", true);
+            $("#submitPhrase").prop("disabled", true);
             $("<p/>").append(
-               $("<a/>").attr("href", "illustration.html?predecessor=" + result.id).text("Copy this link to the next player")
-            ).insertBefore("#submit");
+               $("<a/>").attr("href", "?illustration&predecessor=" + result.id).text("Copy this link to the next player")
+            ).insertBefore("#submitPhrase");
          })
          .fail(function(jqXHR, textStatus) {
             $("<p/>").text(textStatus).insertAfter("#canvas");
@@ -149,13 +149,13 @@ $(function() {
       $("#canvas").mouseleave(function(e) { paint = false; });
       $("#submitIllustration").click(function(e) {
          $.ajax({type: "POST", url: "illustration.php",
-            data:{'username':$("#username")[0].value,format:"PNG",
+            data:{'username':$("#username").val(),format:"PNG",
                'illustration':$("#canvas")[0].toDataURL('image/png').substring(22),
                'predecessor':predecessor}})
          .done(function(result) {
-            $("#submit").prop("disabled", true);
+            $("#submitIllustration").prop("disabled", true);
             $("<p/>").append(
-               $("<a/>").attr("href", "phrase.html?predecessor=" + result.id).text("Copy this link to the next player")
+               $("<a/>").attr("href", "?phrase&predecessor=" + result.id).text("Copy this link to the next player")
             ).insertAfter("#canvas");
          })
          .fail(function(jqXHR, textStatus) {
