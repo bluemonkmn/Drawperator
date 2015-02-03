@@ -3,8 +3,9 @@ function CheckUser() {
    global $username, $googleid, $uid, $conn;
    if (empty($username))
       die("User name required.");
-   if (empty($googleid)) {   
-      $stmt = $conn->prepare('SELECT id, name, googleid FROM tg_user WHERE name=?');
+   if (empty($googleid)) {
+      $googleid = null;
+      $stmt = $conn->prepare('SELECT id, name, googleid FROM tg_user WHERE name=? and googleid IS NULL');
       $stmt->execute(array($username));
    } else {
       $stmt = $conn->prepare('SELECT id, name, googleid FROM tg_user WHERE googleid=?');

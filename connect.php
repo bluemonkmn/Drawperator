@@ -19,9 +19,7 @@ try {
       die("Authentication required.");
    }*/
 } catch (UnexpectedValueException $e) {
-   http_response_code(500);
-   header("Content-Type: text/plain");
-   die("Authentication failed: " . $e->getMessage());   
+   $googleid = null;
 }
 
 if (!empty($_REQUEST['username']))

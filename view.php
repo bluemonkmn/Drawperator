@@ -4,9 +4,13 @@ include_once "connect.php";
 <!DOCTYPE html>
 <html>
 <head>
-<title>Drawperator Viewer</title>
+<meta charset="utf-8"/>
+<title>Drawperator</title>
+<link rel="stylesheet" type="text/css" href="drawperator.css" />
 </head>
 <body>
+<h1>Drawperator</h1>
+<h2>See your drawings and descriptions below</h2>
 <?php
 $illustration = $_REQUEST['illustration'];
 $phrase = $_REQUEST['phrase'];
@@ -16,7 +20,7 @@ $dateThreshold = $_REQUEST['startDate'] ? strtotime($_REQUEST['startDate']) : fa
 
 while($remainingMaxCount > 0) {
    if (isset($illustration)) {
-      $sql = 'SELECT name user, timestamp, fk_phrase predecessor
+      $sql = 'SELECT name user, googleid, timestamp, fk_phrase predecessor
          FROM tg_illustration JOIN tg_user ON fk_user = tg_user.id WHERE tg_illustration.id=?';
       $stmt=$conn->prepare($sql);
       $stmt->execute(array($illustration));
@@ -25,11 +29,16 @@ while($remainingMaxCount > 0) {
          if ($dateThreshold && ($ts < $dateThreshold))
             break;
          $entry = "<div itemscope itemtype=\"http://schema.org/WebPageElement\">\n";
-         $entry .= "<p>Author: <span itemprop=\"author\">" . htmlspecialchars($result['user']) . "</span></p>\n";
-         $entry .= "<p>Date: <time itemprop=\"dateCreated\" datetime=\"" .
+         $entry .= "<p class=\"reviewHeading\">On <time itemprop=\"dateCreated\" datetime=\"" .
             date(DATE_ISO8601, $ts) . "\">" .
-            date('l, F j, Y g:i:s a T', $ts) . "</time></p>\n";
-         $entry .= "<p>Image:<br /><img width=\"400px\" height=\"400px\" itemprop=\"image\" src=\"illustration/$illustration/illustration\" /></p>\n";
+            date('l, F j, Y g:i:s a T', $ts) . "</time>, ";
+         if (isset($result['googleid'])) {
+               $entry .= "<a itemprop=\"author\" href=\"https://plus.google.com/"
+               . $result['googleid'] . "\">" . htmlspecialchars($result['user']) . "</a>";
+         } else {
+            $entry .= "<span itemprop=\"author\">" . htmlspecialchars($result['user']) . "</span>";
+         }
+         $entry .= " drew:</p>\n<img class=\"reviewImage\" width=\"400\" height=\"400\" itemprop=\"image\" src=\"illustration/$illustration/illustration\" />\n";
          $entry .= "</div>\n";
          $output = $entry . $output;
          $phrase = $result['predecessor'];
@@ -40,7 +49,7 @@ while($remainingMaxCount > 0) {
    }
 
    if (isset($phrase)) {
-      $sql = 'SELECT phrase, name user, timestamp, fk_illustration predecessor
+      $sql = 'SELECT phrase, name user, googleid, timestamp, fk_illustration predecessor
          FROM tg_phrase JOIN tg_user ON fk_user = tg_user.id WHERE tg_phrase.id=?';
       $stmt=$conn->prepare($sql);
       $stmt->execute(array($phrase));
@@ -49,11 +58,16 @@ while($remainingMaxCount > 0) {
          if ($dateThreshold && ($ts < $dateThreshold))
             break;
          $entry = "<div itemscope itemtype=\"http://schema.org/WebPageElement\">\n";
-         $entry .= "<p>Author: <span itemprop=\"author\">" . htmlspecialchars($result['user']) . "</span></p>\n";
-         $entry .= "<p>Date: <time itemprop=\"dateCreated\" datetime=\"" .
+         $entry .= "<p class=\"reviewHeading\">On <time itemprop=\"dateCreated\" datetime=\"" .
             date(DATE_ISO8601, $ts) . "\">" .
-            date('l, F j, Y g:i:s a T', $ts) . "</time></p>\n";
-         $entry .= "<p>Phrase: <span itemprop=\"text\">" . $result['phrase'] . "</span></p>\n";
+            date('l, F j, Y g:i:s a T', $ts) . "</time>, ";
+         if (isset($result['googleid'])) {
+               $entry .= "<a itemprop=\"author\" href=\"https://plus.google.com/"
+               . $result['googleid'] . "\">" . htmlspecialchars($result['user']) . "</a>";
+         } else {
+            $entry .= "<span itemprop=\"author\">" . htmlspecialchars($result['user']) . "</span>";
+         }
+         $entry .= " wrote:</p>\n<p class=\"reviewPhrase\" itemprop=\"text\">" . $result['phrase'] . "</p>\n";
          $entry .= "</div>\n";
          $output = $entry . $output;
          $illustration = $result['predecessor'];
