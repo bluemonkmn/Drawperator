@@ -29,7 +29,7 @@ while($remainingMaxCount > 0) {
          $entry .= "<p>Date: <time itemprop=\"dateCreated\" datetime=\"" .
             date(DATE_ISO8601, $ts) . "\">" .
             date('l, F j, Y g:i:s a T', $ts) . "</time></p>\n";
-         $entry .= "<p>Image:<br /><img itemprop=\"image\" src=\"illustration/$illustration/illustration\" /></p>\n";
+         $entry .= "<p>Image:<br /><img width=\"400px\" height=\"400px\" itemprop=\"image\" src=\"illustration/$illustration/illustration\" /></p>\n";
          $entry .= "</div>\n";
          $output = $entry . $output;
          $phrase = $result['predecessor'];
