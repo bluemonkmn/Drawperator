@@ -92,6 +92,8 @@ $(function() {
                'predecessor':predecessor}})
          .done(function(result) {
             $("#submitPhrase").prop("disabled", true);
+            gapi.plus.render("shareButton", {"action":"share","annotation":"bubble","height":"24",
+               "href":"?illustration&predecessor=" + result.id});
             $("<p/>").append(
                $("<a/>").attr("href", "?illustration&predecessor=" + result.id).text("Copy this link to the next player")
             ).insertBefore("#submitPhrase");
@@ -154,6 +156,8 @@ $(function() {
                'predecessor':predecessor}})
          .done(function(result) {
             $("#submitIllustration").prop("disabled", true);
+            gapi.plus.render("shareButton", {"action":"share","annotation":"bubble","height":"24",
+               "href":"?phrase&predecessor=" + result.id});
             $("<p/>").append(
                $("<a/>").attr("href", "?phrase&predecessor=" + result.id).text("Copy this link to the next player")
             ).insertAfter("#canvas");
@@ -223,5 +227,6 @@ Name: <input id="username" type="text" maxLength="80" /><span id="displayName"><
 <input type="button" id="submitPhrase" value="Submit" />
 </div>
 <div id="peopleList"></div>
+<div id="shareButton"></div>
 </body>
 </html>
