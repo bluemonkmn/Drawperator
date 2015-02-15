@@ -13,7 +13,7 @@ case 'GET':
    if ($cmd == 'illustration') {
       $sql = 'SELECT format,illustration FROM tg_illustration';
    } else {
-      $sql = 'SELECT tg_illustration.id,format,fk_phrase predecessor,clientaddress,name user, timestamp
+      $sql = 'SELECT tg_illustration.id,format,fk_phrase predecessor,clientaddress,name user, googleid, timestamp
          FROM tg_illustration JOIN tg_user ON fk_user = tg_user.id';
       if (isset($id))
          $cmd = 'single';
@@ -73,7 +73,7 @@ case 'POST':
       ':illustration' => $illustration,
       ':clientaddress' => inet_pton($_SERVER['REMOTE_ADDR']?:($_SERVER['HTTP_X_FORWARDED_FOR']?:$_SERVER['HTTP_CLIENT_IP'])),
       ':user' => $uid));
-   $stmt = $conn->prepare('SELECT i.id,i.fk_phrase,i.format,i.clientaddress,u.name,i.timestamp
+   $stmt = $conn->prepare('SELECT i.id,i.fk_phrase predecessor,i.format,i.clientaddress,u.name,u.googleid,i.timestamp
       FROM tg_illustration i JOIN tg_user u ON i.fk_user = u.id
       WHERE i.id=?');
    $stmt->execute(array($id));

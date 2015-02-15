@@ -15,3 +15,19 @@ table,td {border:1px solid black}
 body { font-family: Sans-Serif }
 h1 {color: grey}
 h2 {color: darkorange; text-align: center}
+.button {
+  font: bold 11px Arial;
+  text-decoration: none;
+  background-color: #EEEEEE;
+  color: #333333;
+  padding: 2px 6px 2px 6px;
+  border-top: 1px solid #CCCCCC;
+  border-right: 1px solid #333333;
+  border-bottom: 1px solid #333333;
+  border-left: 1px solid #CCCCCC;
+}
+#username {width: 400px}
+#phrase {width: 400px}
+#profile {float:left; padding-right: 5px}
+#shareUrl {width: 600px; display: none}
+.showOnSubmit { display: none }

@@ -8,7 +8,7 @@ case 'GET':
    if (!empty($_REQUEST['request']) && preg_match('/^\d+$/', $_REQUEST['request'], $matches)) {
       $id = $matches[0];
    }
-   $sql = 'SELECT tg_phrase.id,fk_illustration predecessor,phrase,clientaddress,name user,timestamp
+   $sql = 'SELECT tg_phrase.id,fk_illustration predecessor,phrase,clientaddress,name user,googleid,timestamp
    FROM tg_phrase JOIN tg_user ON fk_user = tg_user.id';
    $single = false;
    if (isset($id)) {
@@ -43,7 +43,7 @@ case 'POST':
       ':phrase' => $_REQUEST['phrase'],
       ':clientaddress' => inet_pton($_SERVER['REMOTE_ADDR']?:($_SERVER['HTTP_X_FORWARDED_FOR']?:$_SERVER['HTTP_CLIENT_IP'])),
       ':user' => $uid));
-   $stmt = $conn->prepare("SELECT p.id, p.fk_illustration predecessor, p.phrase, p.clientaddress, u.name user, p.timestamp
+   $stmt = $conn->prepare("SELECT p.id, p.fk_illustration predecessor, p.phrase, p.clientaddress, u.name user, u.googleid, p.timestamp
       FROM tg_phrase p JOIN tg_user u on p.fk_user = u.id WHERE p.id=?");
    $stmt->execute(array($id));
    if ($result = $stmt->fetch(PDO::FETCH_ASSOC)) {

@@ -20,11 +20,23 @@ function signinCallback(authResult) {
          if (profile.error) {
             $('#status').text(profile.error);
          } else {
-            $("#username").val(profile.displayName);
-            $("#username").hide();
-            $("#displayName").text(profile.displayName);
-            $('#status').text("Welcome: " + profile.displayName);
+            $.ajax({type: "GET", url: "user/google/" + profile.id})
+            .done(function(result) {
+               if (result) {
+                  $("#username").val(result['name']);
+                  $('#status').text("Welcome back, " + result['name']
+                     + ". You may change your Drawperator name at any time, and it will remain linked to your Google identity.");
+               } else {
+                  $("#username").val(profile.displayName);
+                  $('#status').text("Welcome, " + profile.displayName
+                     + ". You may use your Google profile name, or specify a name unique to Drawperator.");
+               }
+            })
+            .fail(function(jqXHR, textStatus) {
+               $('#status').text(jqXHR.responseText);
+            });
             $('#profile').attr("src", profile.image.url);
+            $('#status').text("Loading Drawperator name for " + profile.displayName + "...");
             loadContent();
          }
       });
@@ -34,7 +46,11 @@ function signinCallback(authResult) {
       //   "user_signed_out" - User is signed-out
       //   "access_denied" - User denied access to your app
       //   "immediate_failed" - Could not automatically log in the user    
-      $('#status').text(authResult['error']);
+      if (authResult['error'] == 'user_signed_out') {
+         $('#status').text("You have signed out. You may still submit entries, but other people may submit content under the same name making it indistinguishable from your submissions.");
+      } else
+         $('#status').text(authResult['error']);
+      $('#profile').attr("src", "");
       document.cookie='id_token=;max-age:0;expires=Thu, 01 Jan 1970 00:00:00 UTC';
       $('#signinButton').show();      
       $('#signoutButton').hide();
@@ -54,7 +70,11 @@ function loadContent() {
          $.ajax({type: "GET", url: "phrase/" + predecessor})
          .done(function(result) {
             var escapedPhrase = $('<span></span>').text(result.phrase).html();
-            var escapedUser = $('<span></span>').text(result.user).html();
+            var escapedUser;
+            if (result['googleid'])
+               escapedUser = $('<a href="https://plus.google.com/' + result['googleid'] + '"></a>').text(result.user)[0].outerHTML;
+            else
+               escapedUser = $('<span></span>').text(result.user).html();
             $('#predecessorContent').html('<p>Created by ' + escapedUser + ' on ' + result.timestamp
                + '<br /><label>Phrase: <span>' + escapedPhrase + '</span></label></p>');
          })
@@ -65,10 +85,16 @@ function loadContent() {
          $.ajax({type: "GET", url: "illustration/" + predecessor})
          .done(function(result) {
             $('#predecessorContent').html('<img src="illustration/' + predecessor + '/illustration" />');
-            $infoPara = $('<p></p>').text(result['user']);
+            if (result['googleid']) {
+               $infoPara = $('<a href="https://plus.google.com/' + result['googleid'] + '"></a>').text(result['user']);
+               $infoPara = $infoPara.wrap("<p></p>").parent();
+            }
+            else
+               $infoPara = $('<p></p>').text(result['user']);
             $infoPara.prepend("Drawn by ");
             $infoPara.append(" on " + result['timestamp']);
             $('#predecessorContent').prepend($infoPara);
+            $("#phrase").attr("placeholder", "Enter a phrase best representing the displayed image");
          })
          .fail(function(jqXHR, textStatus) {
             $('#predecessorContent').html($('<p/>').text("Failed to load illustration: " + jqXHR.responseText));
@@ -91,12 +117,11 @@ $(function() {
                'phrase':$("#phrase").val(),
                'predecessor':predecessor}})
          .done(function(result) {
-            $("#submitPhrase").prop("disabled", true);
-            gapi.plus.render("shareButton", {"action":"share","annotation":"bubble","height":"24",
-               "href":"?illustration&predecessor=" + result.id});
-            $("<p/>").append(
-               $("<a/>").attr("href", "?illustration&predecessor=" + result.id).text("Copy this link to the next player")
-            ).insertBefore("#submitPhrase");
+            $(".hideOnSubmit").hide();
+            var url = $("<img src=\"view/phrase/" + result.id + "/warn\" />")[0].src;
+            gapi.plus.render("shareButton", {"action":"share","annotation":"bubble","height":"20","href":url});
+            $("#shareUrl").val(url);
+            $(".showOnSubmit").show();
          })
          .fail(function(jqXHR, textStatus) {
             $("<p/>").text(textStatus).insertAfter("#canvas");
@@ -155,12 +180,11 @@ $(function() {
                'illustration':$("#canvas")[0].toDataURL('image/png').substring(22),
                'predecessor':predecessor}})
          .done(function(result) {
-            $("#submitIllustration").prop("disabled", true);
-            gapi.plus.render("shareButton", {"action":"share","annotation":"bubble","height":"24",
-               "href":"?phrase&predecessor=" + result.id});
-            $("<p/>").append(
-               $("<a/>").attr("href", "?phrase&predecessor=" + result.id).text("Copy this link to the next player")
-            ).insertAfter("#canvas");
+            $(".hideOnSubmit").hide();
+            var url = $("<img src=\"view/illustration/" + result.id + "/warn\" />")[0].src;
+            gapi.plus.render("shareButton", {"action":"share","annotation":"bubble","height":"24","href":url});
+            $("#shareUrl").val(url);
+            $(".showOnSubmit").show();
          })
          .fail(function(jqXHR, textStatus) {
             $("<p/>").text(jqXHR.responseText).insertAfter("#canvas");
@@ -181,7 +205,7 @@ $(function() {
       gapi.auth.signOut();
    });
    
-   $('#loadPeople').click(function() {
+/*   $('#loadPeople').click(function() {
       var request = gapi.client.request(
          {'path':'https://www.googleapis.com/plus/v1/people/me/people/visible?orderBy=best&maxResults=10',
          'method':'GET'});
@@ -195,6 +219,7 @@ $(function() {
          }
       });
    });
+*/
 });
 </script>
 </head>
@@ -211,22 +236,23 @@ $(function() {
    </span>
 </span>
 <input id="signoutButton" type="button" value="Sign out" />
-<input id="loadPeople" type="button" value="Load people" />
-<p><img id="profile" /><br />
-Name: <input id="username" type="text" maxLength="80" /><span id="displayName"></span><br />
-<div id="status"></div>
+<!-- <input id="loadPeople" type="button" value="Load people" /> -->
+<p><img id="profile" />
+<span id="status"></span><br />
+Name: <input id="username" type="text" maxLength="80" placeholder="Name to use in Drawperator and help find your own work" /><br />
 <div id="predecessorContent"></div>
 <div id="illustrationInputArea">
 <canvas id="canvas" width="400px" height="400px" class="unselectable" unselectable="on"></canvas>
 <br />
-<input type="button" id="clear" value="Clear" /> <input type="button" id="submitIllustration" value="Submit" />
+<input type="button" id="clear" class="hideOnSubmit" value="Clear" /> <input type="button" id="submitIllustration" class="hideOnSubmit" value="Submit" />
 </div>
 <div id="phraseInputArea">
-<label>Phrase: <input id="phrase" maxlength="140" /></label>
+<label>Phrase: <input id="phrase" maxlength="140" placeholder="Enter a phrase for someone else to illustrate" /></label>
 <br />
-<input type="button" id="submitPhrase" value="Submit" />
+<input type="button" id="submitPhrase" value="Submit" class="hideOnSubmit" />
 </div>
-<div id="peopleList"></div>
-<div id="shareButton"></div>
+<label id="urlLabel" class="showOnSubmit">Link to copy/share: <input type="text" id="shareUrl" class="showOnSubmit" readonly></span></label><br />
+<span id="shareButton"></span>
+<!-- <div id="peopleList"></div> -->
 </body>
 </html>

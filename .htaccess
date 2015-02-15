@@ -2,6 +2,11 @@
 RewriteEngine On
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
-RewriteRule phrase/(.*)$ phrase.php?request=$1 [QSA,NC,L]
-RewriteRule illustration/(.*)$ illustration.php?request=$1 [QSA,NC,L]
+RewriteRule ^phrase/(.*)$ phrase.php?request=$1 [QSA,NC,L]
+RewriteRule ^illustration/(.*)$ illustration.php?request=$1 [QSA,NC,L]
+RewriteRule ^user/(.*)$ user.php?request=$1 [QSA,NC,L]
+RewriteRule ^view/illustration/(\d+)/warn$ view.php?illustration=$1&warn=1 [QSA,NC,L]
+RewriteRule ^view/illustration/(\d+)$ view.php?illustration=$1 [QSA,NC,L]
+RewriteRule ^view/phrase/(\d+)/warn$ view.php?phrase=$1&warn=1 [QSA,NC,L]
+RewriteRule ^view/phrase/(\d+)$ view.php?phrase=$1 [QSA,NC,L]
 </IfModule>

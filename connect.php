@@ -3,6 +3,7 @@
 include "secure.php";
 include "JWT.php";
 include "getkey.php";
+include "config.php";
 
 try {
    if ($_REQUEST['id_token']) {
