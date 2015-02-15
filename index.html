@@ -120,7 +120,12 @@ $(function() {
             $(".hideOnSubmit").hide();
             var url = $("<img src=\"view/phrase/" + result.id + "/warn\" />")[0].src;
             gapi.plus.render("shareButton", {"action":"share","annotation":"bubble","height":"20","href":url});
-            $("#shareUrl").val(url);
+            $("#shareUrl").text(url);
+            $("#shareUrl").attr("href", url);
+            $("#shareUrl").click(function() {
+               event.preventDefault();
+               window.prompt("Copying the URL's address directly from the link is easier, but OK, if you want to click on the link, here's where it leads. You can copy it from here too.", url);
+            });
             $(".showOnSubmit").show();
          })
          .fail(function(jqXHR, textStatus) {
@@ -183,7 +188,12 @@ $(function() {
             $(".hideOnSubmit").hide();
             var url = $("<img src=\"view/illustration/" + result.id + "/warn\" />")[0].src;
             gapi.plus.render("shareButton", {"action":"share","annotation":"bubble","height":"24","href":url});
-            $("#shareUrl").val(url);
+            $("#shareUrl").text(url);
+            $("#shareUrl").attr("href", url);
+            $("#shareUrl").click(function() {
+               event.preventDefault();
+               window.prompt("Copying the URL's address directly from the link is easier, but OK, if you want to click on the link, here's where it leads. You can copy it from here too.", url);
+            });
             $(".showOnSubmit").show();
          })
          .fail(function(jqXHR, textStatus) {
@@ -251,7 +261,7 @@ Name: <input id="username" type="text" maxLength="80" placeholder="Name to use i
 <br />
 <input type="button" id="submitPhrase" value="Submit" class="hideOnSubmit" />
 </div>
-<label id="urlLabel" class="showOnSubmit">Link to copy/share: <input type="text" id="shareUrl" class="showOnSubmit" readonly></span></label><br />
+<label id="urlLabel" class="showOnSubmit">Link to copy/share: <a class="showOnSubmit" id="shareUrl"></a></label><br />
 <span id="shareButton"></span>
 <!-- <div id="peopleList"></div> -->
 </body>
