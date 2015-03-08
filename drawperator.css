@@ -31,3 +31,11 @@ h2 {color: darkorange; text-align: center}
 #profile {float:left; padding-right: 5px}
 #shareUrl {width: 600px; display: none}
 .showOnSubmit { display: none }
+.popup { position: absolute; display: none; background-color:#EEF; padding-right: 15px; }
+.closeButton {
+   color:#777;
+   position:absolute;
+   right: 0px;
+   top:0px;
+   text-decoration: none;
+}

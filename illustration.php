@@ -6,10 +6,17 @@ try {
 switch($_SERVER['REQUEST_METHOD']) {
 case 'GET':
    $cmd = 'list';
-   if (!empty($_REQUEST['request']) && preg_match('/^(\d+)(?:\/([^\/]+))?$/', $_REQUEST['request'], $matches)) {
-      $id = $matches[1];
-      $cmd = $matches[2];
+   if (!empty($_REQUEST['request'])) {
+      if (preg_match('/^(\d+)(?:\/([^\/]+))?$/', $_REQUEST['request'], $matches)) {
+         $id = $matches[1];
+         $cmd = $matches[2];
+      }
+      elseif (preg_match('/^un\/(.+)$/', $_REQUEST['request'], $matches))
+         $un = $matches[1];
+      elseif (preg_match('/^ug\/(\d+)$/', $_REQUEST['request'], $matches))
+         $uid = $matches[1];
    }
+   
    if ($cmd == 'illustration') {
       $sql = 'SELECT format,illustration FROM tg_illustration';
    } else {
@@ -20,12 +27,20 @@ case 'GET':
    }
 
    if (isset($id))
-      $sql .= " WHERE tg_illustration.id=?";      
+      $sql .= " WHERE tg_illustration.id=?";
+   elseif (isset($uid))
+      $sql .= " WHERE tg_user.googleid=?";
+   elseif (isset($un))
+      $sql .= " WHERE tg_user.name=? and tg_user.googleid is null";
 
    $stmt = $conn->prepare($sql);
    
    if (isset($id))
       $stmt->bindParam(1, $id);
+   elseif (isset($uid))
+      $stmt->bindParam(1, $uid);
+   elseif (isset($un))
+      $stmt->bindParam(1, $un);
    $stmt->execute();
    if ($cmd == 'illustration') {
       if ($row = $stmt->fetch()) {

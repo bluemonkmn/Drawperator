@@ -7,6 +7,7 @@
 <script src="https://apis.google.com/js/client:platform.js" async defer></script>
 <script src="http://code.jquery.com/jquery-2.1.3.min.js"></script>
 <script>
+var googleid;
 function signinCallback(authResult) {
    if (authResult['status']['signed_in']) {
       // Update the app to reflect a signed in user
@@ -21,6 +22,7 @@ function signinCallback(authResult) {
          if (profile.error) {
             $('#status').text(profile.error);
          } else {
+            googleid = profile.id;
             $.ajax({type: "GET", url: "user/google/" + profile.id})
             .done(function(result) {
                if (result) {
@@ -128,6 +130,7 @@ $(function() {
                window.prompt("Copying the URL's address directly from the link is easier, but OK, if you want to click on the link, here's where it leads. You can copy it from here too.", url);
             });
             $(".showOnSubmit").show();
+            window.setTimeout(function(){$("#shareButton")[0].scrollIntoView(false);}, 500);
          })
          .fail(function(jqXHR, textStatus) {
             $("<p/>").text(textStatus).insertAfter("#canvas");
@@ -196,6 +199,7 @@ $(function() {
                window.prompt("Copying the URL's address directly from the link is easier, but OK, if you want to click on the link, here's where it leads. You can copy it from here too.", url);
             });
             $(".showOnSubmit").show();
+            window.setTimeout(function(){$("#shareButton")[0].scrollIntoView(false);}, 500);
          })
          .fail(function(jqXHR, textStatus) {
             $("<p/>").text(jqXHR.responseText).insertAfter("#canvas");
@@ -203,8 +207,43 @@ $(function() {
       });
       $("#clear").click(function(e) {
          c2d.clearRect(0, 0, 400, 400);
-      });      
+      });
    }
+
+   $("#myPhrases").click(function(e) {
+      e.preventDefault();
+      var getUrl = "phrase/un/" + encodeURIComponent($("#username").val());
+      if (googleid)
+         getUrl = "phrase/ug/" + googleid;
+      $.ajax({"type": "GET", "url": getUrl})
+      .done(function(result) {
+         $("#myContent").empty();
+         for(var key in result) {
+            $("#myContent").append("<a href=\"view.php?phrase=" + result[key].id + "\">" + result[key].phrase + "</a><br />\n");
+         }
+         $("#myContentContainer").show();
+      });
+   });
+   
+   $("#myIllustrations").click(function(e) {
+      e.preventDefault();
+      var getUrl = "illustration/un/" + encodeURIComponent($("#username").val());
+      if (googleid)
+         getUrl = "illustration/ug/" + googleid;
+      $.ajax({"type": "GET", "url": getUrl})
+      .done(function(result) {
+         $("#myContent").empty();
+         for(var key in result) {
+            $("#myContent").append("<a href=\"view.php?illustration=" + result[key].id + "\">"
+               + result[key].timestamp + "</a><br />\n");
+         }
+         $("#myContentContainer").show();
+      });
+   });
+
+   $(".popup > .closeButton").click(function(e) {
+      $(this.parentElement).hide();
+   });
    
    predecessor = new RegExp("[\\?&]predecessor=([^&#]*)").exec(location.search);
    if (predecessor != null)
@@ -236,6 +275,13 @@ $(function() {
 </head>
 <body class="unselectable" unselectable="on">
 <h1>Drawperator</h1>
+<nav id="menu">
+<a id="myPhrases" href="#">My Phrases</a>
+<a id="myIllustrations" href="#MyIllustrations">My Illustrations</a>
+</nav>
+<div id="myContentContainer" class="popup">
+<a id="closeMyContent" href="#" class="closeButton">&#x2716;</a>
+<span id="myContent" class="popupContent"></span></div>
 <span id="signinButton">
    <span
       class="g-signin"

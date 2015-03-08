@@ -5,19 +5,31 @@ include_once "checkuser.php";
 try {
 switch($_SERVER['REQUEST_METHOD']) {
 case 'GET':
-   if (!empty($_REQUEST['request']) && preg_match('/^\d+$/', $_REQUEST['request'], $matches)) {
-      $id = $matches[0];
-   }
+   if (!empty($_REQUEST['request'])) {
+      if (preg_match('/^\d+$/', $_REQUEST['request'], $matches))
+         $id = $matches[0];
+      elseif (preg_match('/^un\/(.+)$/', $_REQUEST['request'], $matches))
+         $un = $matches[1];
+      elseif (preg_match('/^ug\/(\d+)$/', $_REQUEST['request'], $matches))
+         $uid = $matches[1];
+   }   
    $sql = 'SELECT tg_phrase.id,fk_illustration predecessor,phrase,clientaddress,name user,googleid,timestamp
    FROM tg_phrase JOIN tg_user ON fk_user = tg_user.id';
    $single = false;
    if (isset($id)) {
       $single = true;
       $sql .= " WHERE tg_phrase.id=?";      
-   }
+   } elseif (isset($uid))
+      $sql .= " WHERE tg_user.googleid=?";
+   elseif (isset($un))
+      $sql .= " WHERE tg_user.name=? and tg_user.googleid is null";
    $stmt = $conn->prepare($sql);
    if ($single)
       $stmt->bindParam(1, $id);
+   elseif (isset($uid))
+      $stmt->bindParam(1, $uid);
+   elseif (isset($un))
+      $stmt->bindParam(1, $un);
    $stmt->execute();
    $results = array();
    while ($result = $stmt->fetch(PDO::FETCH_ASSOC)) {
